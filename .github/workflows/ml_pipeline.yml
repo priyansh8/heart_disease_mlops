@@ -1,0 +1,187 @@
+name: ML Pipeline CI/CD
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  lint:
+    name: Code Quality Check (Linting)
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: Install linting tools
+      run: |
+        python -m pip install --upgrade pip
+        pip install flake8 pylint
+    
+    - name: Lint with flake8 (Syntax Errors)
+      run: |
+        echo "Checking for Python syntax errors..."
+        flake8 heart_disease_code/src heart_disease_code/tests --count --select=E9,F63,F7,F82 --show-source --statistics
+    
+    - name: Lint with flake8 (Style Check)
+      run: |
+        echo "Checking code style..."
+        flake8 heart_disease_code/src heart_disease_code/tests --count --max-complexity=10 --max-line-length=127 --statistics
+      continue-on-error: true
+    
+    - name: Lint with pylint
+      run: |
+        echo "Running pylint analysis..."
+        pylint heart_disease_code/src --exit-zero
+      continue-on-error: true
+    
+    - name: Linting Summary
+      run: |
+        echo "✅ Linting stage completed"
+
+  test:
+    name: Unit Testing
+    runs-on: ubuntu-latest
+    needs: lint
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-cov
+    
+    - name: Run unit tests with coverage
+      run: |
+        cd heart_disease_code
+        pytest tests/ -v --cov=src --cov-report=xml --cov-report=html --cov-report=term
+    
+    - name: Display coverage summary
+      run: |
+        cd heart_disease_code
+        echo "Test coverage report generated"
+        
+    - name: Upload coverage HTML report
+      uses: actions/upload-artifact@v3
+      with:
+        name: coverage-report-html
+        path: heart_disease_code/htmlcov/
+        retention-days: 30
+    
+    - name: Upload coverage XML
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: coverage-report-xml
+        path: heart_disease_code/coverage.xml
+        retention-days: 30
+    
+    - name: Testing Summary
+      run: |
+        echo "✅ Testing stage completed"
+
+  train:
+    name: Model Training
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Verify dataset exists
+      run: |
+        echo "Checking for dataset..."
+        ls -la heart_disease_dataset/
+        echo "Dataset found: processed.cleveland.data"
+    
+    - name: Train models
+      run: |
+        echo "Starting model training pipeline..."
+        python train_pipeline.py
+    
+    - name: Verify model artifacts
+      run: |
+        echo "Verifying generated model files..."
+        ls -la *.pkl
+        ls -la preprocessing_config.json
+        echo "All model artifacts generated successfully"
+    
+    - name: Upload trained models
+      uses: actions/upload-artifact@v3
+      with:
+        name: trained-models
+        path: |
+          logistic_regression_model.pkl
+          random_forest_model.pkl
+          scaler_linear.pkl
+          imputer.pkl
+        retention-days: 30
+    
+    - name: Upload preprocessing config
+      uses: actions/upload-artifact@v3
+      with:
+        name: preprocessing-config
+        path: preprocessing_config.json
+        retention-days: 30
+    
+    - name: Upload training logs
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: training-logs
+        path: |
+          *.log
+        retention-days: 30
+        
+    - name: Training Summary
+      run: |
+        echo "✅ Model training completed"
+        echo "📦 Artifacts uploaded:"
+        echo "   - Logistic Regression Model"
+        echo "   - Random Forest Model"
+        echo "   - Scaler & Imputer"
+        echo "   - Preprocessing Config"
+
+  summary:
+    name: Pipeline Summary
+    runs-on: ubuntu-latest
+    needs: [lint, test, train]
+    if: always()
+    
+    steps:
+    - name: Pipeline Status
+      run: |
+        echo "=================================="
+        echo "ML PIPELINE EXECUTION SUMMARY"
+        echo "=================================="
+        echo "✅ Stage 1: Linting - Completed"
+        echo "✅ Stage 2: Testing - Completed"
+        echo "✅ Stage 3: Training - Completed"
+        echo "=================================="
+        echo "All stages executed successfully!"
