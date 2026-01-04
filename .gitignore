@@ -1,68 +1,9 @@
-# Virtual Environments
-.venv/
-venv_new/
-venv/
-env/
-ENV/
-
-# Python Cache
 __pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-
-# Distribution / Packaging
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-
-# MLflow
+.venv/
 mlruns/
-mlflow.db
-
-# Trained Models (reproducible from code)
-*.pkl
-
-# Jupyter Notebook
-.ipynb_checkpoints/
-
-# Testing
-.pytest_cache/
-.coverage
-htmlcov/
-coverage.xml
-*.cover
-.hypothesis/
-
-# IDE / Editors
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-*.sublime-project
-*.sublime-workspace
-
-# OS Files
+artifacts/
+reports/figures/
+*.pyc
 .DS_Store
-Thumbs.db
-desktop.ini
-
-# Logs
-*.log
-
-# Documentation builds
-docs/_build/
+.idea/
+.vscode/
