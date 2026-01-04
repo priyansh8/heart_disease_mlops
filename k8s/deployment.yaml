@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: heart-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: heart-api
+  template:
+    metadata:
+      labels:
+        app: heart-api
+    spec:
+      containers:
+        - name: heart-api
+          image: heart-api:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+          env:
+            - name: MODEL_PATH
+              value: /app/artifacts/model.joblib
+          volumeMounts:
+            - name: model-vol
+              mountPath: /app/artifacts
+      volumes:
+        - name: model-vol
+          hostPath:
+            path: /tmp/heart-artifacts
+            type: DirectoryOrCreate
