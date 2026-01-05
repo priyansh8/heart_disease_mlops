@@ -1,9 +1,15 @@
 # Docker API Commands
 
 ## Build Image
-```bash
+**From api/ folder:**
+```powershell
 cd api
 docker build -t heart-disease-api .
+```
+
+**OR from root folder:**
+```powershell
+docker build -t heart-disease-api -f api/Dockerfile api/
 ```
 
 ## Run Container

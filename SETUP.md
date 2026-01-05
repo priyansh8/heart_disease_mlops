@@ -20,8 +20,8 @@ pip install -r requirements.txt
 **This installs:**
 - pytest (for testing)
 - flake8 (for linting)  
-- jupyter (for notebooks)
-- All ML libraries
+- jupyter + ipykernel (for notebooks)
+- All ML libraries (matplotlib, pandas, etc.)
 
 ### 4. Verify Installation
 ```powershell
@@ -31,17 +31,45 @@ pytest --version
 flake8 --version
 # Should show: 6.1.0
 
-jupyter --version
-# Should show version info
+python -c "import matplotlib; print('matplotlib OK')"
+# Should show: matplotlib OK
+```
+
+### 5. Setup Jupyter Kernel (For Notebook)
+**Open assignment1.ipynb:**
+1. Click the **kernel selector** in top-right corner (shows Python version)
+2. Select **"Python Environments"**
+3. Choose **your venv interpreter**: `.\venv\Scripts\python.exe`
+
+Now all notebook cells will use your venv with matplotlib installed.
+
+### 6. Generate Model Files (Required for Docker API)
+Model `.pkl` files are not in git (too large). Generate them by running the notebook:
+
+```powershell
+# Open assignment1.ipynb in VS Code
+# Run all cells (Cell → Run All)
+# This creates: random_forest_model.pkl, imputer.pkl, logistic_model.pkl
+```
+
+Then copy to api folder:
+```powershell
+Copy-Item random_forest_model.pkl api/models/
+Copy-Item imputer.pkl api/models/
 ```
 
 ---
 
-## ❌ Common Error
+## ❌ Common Errors
 
-**Error:** `pytest : The term 'pytest' is not recognized`
-
+**Error:** `pytest : The term 'pytest' is not recognized`  
 **Cause:** You didn't run `pip install -r requirements.txt`
+
+**Error:** `No module named 'matplotlib'` in notebook  
+**Cause:** Notebook using wrong kernel. Follow step 5 above to select venv kernel.
+
+**Error:** `COPY models/ models/` fails in Docker build  
+**Cause:** Model files don't exist. Run notebook to generate them (step 6).
 
 **Solution:**
 ```powershell
