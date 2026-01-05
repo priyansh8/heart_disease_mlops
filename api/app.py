@@ -2,13 +2,37 @@
 Heart Disease Prediction API
 FastAPI application for serving ML model predictions
 """
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel, Field
 import pickle
 import numpy as np
 import pandas as pd
-from typing import Dict
+from typing import Dict, List
 import os
+import logging
+import time
+from datetime import datetime
+from collections import defaultdict
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('api_logs.log'),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
+
+# Metrics storage
+metrics = {
+    "total_requests": 0,
+    "endpoint_counts": defaultdict(int),
+    "status_counts": defaultdict(int),
+    "total_response_time": 0.0,
+    "request_log": []
+}
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -16,6 +40,39 @@ app = FastAPI(
     description="API for predicting heart disease using Random Forest model",
     version="1.0.0"
 )
+
+# Logging middleware
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    start_time = time.time()
+    
+    response = await call_next(request)
+    
+    process_time = time.time() - start_time
+    
+    # Update metrics
+    metrics["total_requests"] += 1
+    metrics["endpoint_counts"][request.url.path] += 1
+    metrics["status_counts"][response.status_code] += 1
+    metrics["total_response_time"] += process_time
+    
+    # Log request
+    log_entry = {
+        "timestamp": datetime.now().isoformat(),
+        "method": request.method,
+        "path": request.url.path,
+        "status": response.status_code,
+        "duration": round(process_time, 4)
+    }
+    metrics["request_log"].append(log_entry)
+    
+    # Keep only last 100 logs in memory
+    if len(metrics["request_log"]) > 100:
+        metrics["request_log"] = metrics["request_log"][-100:]
+    
+    logger.info(f"{request.method} {request.url.path} - {response.status_code} - {process_time:.4f}s")
+    
+    return response
 
 # Define input data schema
 class PatientData(BaseModel):
@@ -188,6 +245,32 @@ def predict_batch(patients: list[PatientData]) -> Dict:
     return {
         "total_patients": len(patients),
         "predictions": results
+    }
+
+# Metrics endpoint
+@app.get("/metrics")
+def get_metrics():
+    """Get API usage metrics"""
+    avg_response_time = (
+        metrics["total_response_time"] / metrics["total_requests"]
+        if metrics["total_requests"] > 0 else 0
+    )
+    
+    return {
+        "total_requests": metrics["total_requests"],
+        "endpoints": dict(metrics["endpoint_counts"]),
+        "status_codes": dict(metrics["status_counts"]),
+        "average_response_time_seconds": round(avg_response_time, 4),
+        "success_rate": f"{(metrics['status_counts'][200] / metrics['total_requests'] * 100) if metrics['total_requests'] > 0 else 0:.2f}%"
+    }
+
+# Logs endpoint
+@app.get("/logs")
+def get_logs(limit: int = 50):
+    """Get recent API request logs"""
+    return {
+        "total_logs": len(metrics["request_log"]),
+        "logs": metrics["request_log"][-limit:]
     }
 
 if __name__ == "__main__":

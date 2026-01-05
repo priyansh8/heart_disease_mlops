@@ -125,6 +125,15 @@ python test_api.py
 curl http://localhost:8000/health
 ```
 
+### View Metrics & Logs
+```powershell
+# View API metrics
+http://localhost:8000/metrics
+
+# View request logs
+http://localhost:8000/logs
+```
+
 ### Stop Container
 ```powershell
 docker stop heart-api
@@ -189,8 +198,14 @@ curl "$API_URL/health"
 
 # View docs
 # Open: $API_URL/docs in browser
-```
 
+# View metrics
+# Open: $API_URL/metrics in browser
+
+# View logs
+# Open: $API_URL/logs in browser
+```
+, /health, /metrics, /logs
 ### Screenshots to Take
 ```powershell
 kubectl get pods -o wide
@@ -235,6 +250,11 @@ minikube stop
   - Run: `minikube start`
   - Deploy: `kubectl apply -f kubernetes/`
   - Access: `minikube service heart-disease-service`
+
+- [ ] Monitoring: Logging & Metrics
+  - Metrics: `http://localhost:8000/metrics`
+  - Logs: `http://localhost:8000/logs`
+  - File: `api/api_logs.log`
 
 ---
 
