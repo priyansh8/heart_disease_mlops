@@ -200,24 +200,7 @@ minikube service heart-disease-service
 minikube service heart-disease-service --url
 ```
 
-### Test API
-```powershell
-# Get URL
-$API_URL = minikube service heart-disease-service --url
 
-# Test health
-curl "$API_URL/health"
-
-# View docs
-# Open: $API_URL/docs in browser
-
-# View metrics
-# Open: $API_URL/metrics in browser
-
-# View logs
-# Open: $API_URL/logs in browser
-```
-, /health, /metrics, /logs
 ### Screenshots to Take
 ```powershell
 kubectl get pods -o wide
