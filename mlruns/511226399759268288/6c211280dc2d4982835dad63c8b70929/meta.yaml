@@ -1,0 +1,15 @@
+artifact_uri: file:///e:/BITS/Semester3/MLOps/Assignment1/heart_disease_mlops/mlruns/511226399759268288/6c211280dc2d4982835dad63c8b70929/artifacts
+end_time: 1767608137708
+entry_point_name: ''
+experiment_id: '511226399759268288'
+lifecycle_stage: active
+run_id: 6c211280dc2d4982835dad63c8b70929
+run_name: Logistic_Regression
+run_uuid: 6c211280dc2d4982835dad63c8b70929
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1767608130284
+status: 3
+tags: []
+user_id: hp

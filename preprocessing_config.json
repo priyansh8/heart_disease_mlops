@@ -29,23 +29,5 @@
   "random_forest_params": {
     "n_estimators": 200,
     "random_state": 42
-  },
-  "logistic_regression_metrics": {
-    "accuracy": 0.8688524590163934,
-    "precision": 0.8333333333333334,
-    "recall": 0.8928571428571429,
-    "f1_score": 0.8620689655172413,
-    "roc_auc": 0.9761904761904762,
-    "cv_mean": 0.8221938775510204,
-    "cv_std": 0.06341758974499696
-  },
-  "random_forest_metrics": {
-    "accuracy": 0.9016393442622951,
-    "precision": 0.84375,
-    "recall": 0.9642857142857143,
-    "f1_score": 0.8999999999999999,
-    "roc_auc": 0.9545454545454546,
-    "cv_mean": 0.8097789115646258,
-    "cv_std": 0.04824779276971951
   }
 }
