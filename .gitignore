@@ -66,3 +66,30 @@ desktop.ini
 
 # Documentation builds
 docs/_build/
+
+# Runtime artifacts and data
+cats_dogs_dataset/
+models/
+api_logs.log
+training_config.json
+
+# Large model and experiment files (use DVC or artifact storage instead)
+cat_dog_model.h5
+mlruns/
+confusion_matrix.png
+training_curves.png
+PetImages/
+
+# DVC: ignore local cache but track .dvc metadata files
+.dvc/cache
+.dvc/tmp
+
+# Generated plots and temp test files
+confusion_matrix.png
+training_curves.png
+cats_dogs_code/test_full_output.txt
+cats_dogs_code/all_tests_output*.txt
+cats_dogs_code/test_readable.txt
+cats_dogs_code/model_test_output.txt
+cats_dogs_code/preproc_test_output.txt
+cats_dogs_code/run_tests_capture.py

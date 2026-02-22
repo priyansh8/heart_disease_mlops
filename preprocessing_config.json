@@ -1,33 +1,69 @@
 {
-  "missing_value_strategy": "median imputation for ca and thal",
-  "target_encoding": "binary (0: no disease, 1: disease)",
-  "categorical_encoding": "one-hot encoding for ca and thal (drop_first=True)",
-  "numerical_features": [
-    "age",
-    "trestbps",
-    "chol",
-    "thalach",
-    "oldpeak"
-  ],
-  "categorical_features": [
-    "sex",
-    "cp",
-    "fbs",
-    "restecg",
-    "exang",
-    "slope",
-    "ca",
-    "thal"
-  ],
-  "scaling": "StandardScaler for numerical features (Logistic Regression only)",
-  "test_size": 0.2,
-  "random_state": 42,
-  "logistic_regression_params": {
-    "max_iter": 2000,
-    "random_state": 42
+  "task": "Binary Image Classification - Cats vs Dogs",
+  "use_case": "Pet adoption platform image classification",
+  "dataset": {
+    "name": "Cats and Dogs binary classification dataset",
+    "source": "Kaggle",
+    "classes": ["cats", "dogs"],
+    "num_classes": 2,
+    "description": "Binary classification dataset for cat and dog images"
   },
-  "random_forest_params": {
-    "n_estimators": 200,
-    "random_state": 42
+  "preprocessing": {
+    "image_size": [224, 224],
+    "image_mode": "RGB",
+    "image_channels": 3,
+    "normalization": "scaling to [0, 1] (dividing by 255)",
+    "interpolation": "Bilinear resize (PIL default)"
+  },
+  "data_splitting": {
+    "train_ratio": 0.8,
+    "validation_ratio": 0.1,
+    "test_ratio": 0.1,
+    "stratified": true,
+    "random_state": 42,
+    "description": "80% train, 10% validation, 10% test with stratification"
+  },
+  "data_augmentation": {
+    "enabled": true,
+    "augmentation_multiplier": 2,
+    "augmentation_probability": 0.5,
+    "techniques": [
+      {
+        "name": "Horizontal Flip",
+        "description": "Mirror image horizontally",
+        "probability": 0.5
+      },
+      {
+        "name": "Vertical Flip",
+        "description": "Mirror image vertically",
+        "probability": 0.5
+      },
+      {
+        "name": "Rotation",
+        "description": "Rotate image ±15 degrees",
+        "angle_range": [-15, 15],
+        "probability": 0.5
+      },
+      {
+        "name": "Brightness Adjustment",
+        "description": "Adjust brightness factor between 0.8x and 1.2x",
+        "factor_range": [0.8, 1.2],
+        "probability": 0.5
+      },
+      {
+        "name": "Contrast Adjustment",
+        "description": "Adjust contrast factor between 0.8x and 1.2x",
+        "factor_range": [0.8, 1.2],
+        "probability": 0.5
+      }
+    ],
+    "purpose": "Improve model generalization and robustness by creating diverse training samples"
+  },
+  "target_encoding": "binary (0: cats, 1: dogs)",
+  "label_alignment": "Alphabetical order (cats=0, dogs=1)",
+  "quality_checks": {
+    "skip_corrupted_images": true,
+    "verify_image_format": "RGB",
+    "verify_image_dimensions": [224, 224]
   }
 }

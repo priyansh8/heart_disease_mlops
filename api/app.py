@@ -1,18 +1,17 @@
 """
-Heart Disease Prediction API
-FastAPI application for serving ML model predictions
+Cats vs Dogs Classification API
+FastAPI service exposing a CNN for image predictions.
 """
-from fastapi import FastAPI, HTTPException, Request
-from pydantic import BaseModel, Field
-import pickle
+from fastapi import FastAPI, HTTPException, Request, UploadFile, File
 import numpy as np
-import pandas as pd
-from typing import Dict, List
 import os
 import logging
 import time
 from datetime import datetime
 from collections import defaultdict
+from io import BytesIO
+from PIL import Image
+import tensorflow as tf
 
 # Configure logging
 logging.basicConfig(
@@ -36,8 +35,8 @@ metrics = {
 
 # Initialize FastAPI app
 app = FastAPI(
-    title="Heart Disease Prediction API",
-    description="API for predicting heart disease using Random Forest model",
+    title="Cats vs Dogs Classification API",
+    description="API for predicting cats vs dogs from images using a simple CNN",
     version="1.0.0"
 )
 
@@ -74,66 +73,31 @@ async def log_requests(request: Request, call_next):
     
     return response
 
-# Define input data schema
-class PatientData(BaseModel):
-    age: float = Field(..., description="Age in years", ge=0, le=120)
-    sex: float = Field(..., description="Sex (1 = male; 0 = female)", ge=0, le=1)
-    cp: float = Field(..., description="Chest pain type (0-3)", ge=0, le=3)
-    trestbps: float = Field(..., description="Resting blood pressure (mm Hg)", ge=0)
-    chol: float = Field(..., description="Serum cholesterol (mg/dl)", ge=0)
-    fbs: float = Field(..., description="Fasting blood sugar > 120 mg/dl (1 = true; 0 = false)", ge=0, le=1)
-    restecg: float = Field(..., description="Resting ECG results (0-2)", ge=0, le=2)
-    thalach: float = Field(..., description="Maximum heart rate achieved", ge=0, le=250)
-    exang: float = Field(..., description="Exercise induced angina (1 = yes; 0 = no)", ge=0, le=1)
-    oldpeak: float = Field(..., description="ST depression induced by exercise", ge=0)
-    slope: float = Field(..., description="Slope of peak exercise ST segment (0-2)", ge=0, le=2)
-    ca: float = Field(..., description="Number of major vessels colored by fluoroscopy (0-3)", ge=0, le=3)
-    thal: float = Field(..., description="Thalassemia (0-3)", ge=0, le=3)
-    
-    class Config:
-        schema_extra = {
-            "example": {
-                "age": 63,
-                "sex": 1,
-                "cp": 3,
-                "trestbps": 145,
-                "chol": 233,
-                "fbs": 1,
-                "restecg": 0,
-                "thalach": 150,
-                "exang": 0,
-                "oldpeak": 2.3,
-                "slope": 0,
-                "ca": 0,
-                "thal": 1
-            }
-        }
+# no Pydantic schema needed for image upload; we use UploadFile
 
-# Load models at startup
+# Load CNN model at startup
 MODEL_DIR = "models"
+cnn_model = None
 
 try:
-    print("Loading models...")
-    with open(f'{MODEL_DIR}/random_forest_model.pkl', 'rb') as f:
-        rf_model = pickle.load(f)
-    # Note: imputer not needed for API - it only handles ca/thal columns from training data
-    # API input validation ensures no missing values
-    print("✅ Models loaded successfully")
+    print("Loading model...")
+    cnn_model = tf.keras.models.load_model(os.path.join(MODEL_DIR, 'cat_dog_model.h5'))
+    print("✅ Model loaded successfully")
 except Exception as e:
-    print(f"❌ Error loading models: {e}")
-    rf_model = None
+    print(f"❌ Error loading model: {e}")
+    cnn_model = None
 
 # Root endpoint
 @app.get("/")
 def read_root():
     """Welcome endpoint with API information"""
     return {
-        "message": "Heart Disease Prediction API",
+        "message": "Cats vs Dogs Classification API",
         "version": "1.0.0",
         "endpoints": {
             "/": "API information",
             "/health": "Health check",
-            "/predict": "Make prediction (POST)",
+            "/predict": "Make prediction (POST, upload image)",
             "/docs": "Interactive API documentation",
             "/model/info": "Model information"
         }
@@ -143,109 +107,56 @@ def read_root():
 @app.get("/health")
 def health_check():
     """Check if API and models are healthy"""
-    models_loaded = rf_model is not None
+    models_loaded = cnn_model is not None
     return {
         "status": "healthy" if models_loaded else "unhealthy",
         "models_loaded": models_loaded,
-        "model_type": "Random Forest" if models_loaded else None
+        "model_type": "Simple CNN" if models_loaded else None
     }
 
 # Model info endpoint
 @app.get("/model/info")
 def model_info():
     """Get information about the loaded model"""
-    if rf_model is None:
+    if cnn_model is None:
         raise HTTPException(status_code=503, detail="Model not loaded")
     
     return {
-        "model_type": "Random Forest Classifier",
-        "n_estimators": rf_model.n_estimators,
-        "features": 13,
-        "target_classes": ["No Disease", "Disease"],
-        "training_accuracy": "88.5%",
-        "description": "Predicts presence of heart disease based on 13 clinical features"
+        "model_type": "Simple CNN",
+        "input_shape": cnn_model.input_shape,
+        "classes": ["cats", "dogs"],
+        "description": "Binary image classifier for cats versus dogs"
     }
 
-# Prediction endpoint
+# Prediction endpoint expects an image file upload
 @app.post("/predict")
-def predict(patient: PatientData) -> Dict:
+async def predict(file: UploadFile = File(...)) -> dict:
     """
-    Make heart disease prediction for a patient
-    
-    Returns:
-        - prediction: 0 (No Disease) or 1 (Disease)
-        - prediction_label: Human-readable prediction
-        - confidence: Confidence score (0-1)
-        - probabilities: Probability for each class
+    Make a prediction on an uploaded image. Returns the predicted label
+    and confidence.
     """
-    # Check if models are loaded
-    if rf_model is None:
-        raise HTTPException(status_code=503, detail="Models not loaded")
-    
+    if cnn_model is None:
+        raise HTTPException(status_code=503, detail="Model not loaded")
     try:
-        # Convert input to array
-        features = np.array([[
-            patient.age, patient.sex, patient.cp, patient.trestbps,
-            patient.chol, patient.fbs, patient.restecg, patient.thalach,
-            patient.exang, patient.oldpeak, patient.slope, patient.ca,
-            patient.thal
-        ]])
-        
-        # Make prediction directly (no imputation needed - API validates complete input)
-        prediction = rf_model.predict(features)[0]
-        probabilities = rf_model.predict_proba(features)[0]
-        
-        # Get confidence (probability of predicted class)
-        confidence = float(probabilities[prediction])
-        
-        # Format response
-        response = {
-            "prediction": int(prediction),
-            "prediction_label": "Disease" if prediction == 1 else "No Disease",
+        contents = await file.read()
+        img = Image.open(BytesIO(contents)).convert('RGB')
+        img = img.resize((224, 224))
+        arr = np.asarray(img, dtype=np.float32) / 255.0
+        features = np.expand_dims(arr, axis=0)
+
+        probs = cnn_model.predict(features)[0][0]
+        pred = int(probs >= 0.5)
+        confidence = float(probs if pred == 1 else 1 - probs)
+
+        return {
+            "prediction": pred,
+            "prediction_label": "dog" if pred == 1 else "cat",
             "confidence": round(confidence, 4),
-            "probabilities": {
-                "no_disease": round(float(probabilities[0]), 4),
-                "disease": round(float(probabilities[1]), 4)
-            },
-            "model_used": "Random Forest",
-            "input_features": {
-                "age": patient.age,
-                "sex": "Male" if patient.sex == 1 else "Female",
-                "chest_pain_type": int(patient.cp),
-                "resting_bp": patient.trestbps,
-                "cholesterol": patient.chol
-            }
+            "probability": round(float(probs), 4)
         }
-        
-        return response
-        
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Prediction error: {str(e)}")
 
-# Batch prediction endpoint (bonus)
-@app.post("/predict/batch")
-def predict_batch(patients: list[PatientData]) -> Dict:
-    """
-    Make predictions for multiple patients at once
-    
-    Returns list of predictions
-    """
-    if rf_model is None:
-        raise HTTPException(status_code=503, detail="Models not loaded")
-    
-    results = []
-    for patient in patients:
-        try:
-            # Reuse single prediction logic
-            prediction_result = predict(patient)
-            results.append(prediction_result)
-        except Exception as e:
-            results.append({"error": str(e)})
-    
-    return {
-        "total_patients": len(patients),
-        "predictions": results
-    }
 
 # Metrics endpoint
 @app.get("/metrics")

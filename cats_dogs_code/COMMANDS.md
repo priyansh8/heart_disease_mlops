@@ -5,11 +5,11 @@
 # From root folder
 pip install -r requirements.txt
 ```
-This installs pytest, flake8, pylint, etc.
+This installs pytest, flake8, pylint, tensorflow, pillow, dvc and other libraries relevant for the image pipeline.
 
 ## Run Unit Tests
 ```bash
-cd heart_disease_code
+cd cats_dogs_code
 pytest -v
 ```
 
@@ -41,6 +41,6 @@ pytest tests/ -v --cov=src --cov-report=html
 ```
 
 ## Expected Results
-- Tests: 12 passed
-- Coverage: ~95%
-- Lint: No critical errors
+- Unit tests should exercise the image preprocessing and CNN utilities
+- Coverage should remain high (~95%)
+- Lint: No critical errors or style violations

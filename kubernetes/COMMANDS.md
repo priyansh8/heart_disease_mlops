@@ -21,7 +21,7 @@ minikube docker-env | Invoke-Expression
 
 # Build image inside Minikube
 cd api
-docker build -t heart-disease-api:v1 .
+docker build -t cats-dogs-api:v1 .
 cd ..
 ```
 
@@ -63,8 +63,8 @@ $API_URL = minikube service heart-disease-service --url
 # Test health endpoint
 curl "$API_URL/health"
 
-# Test prediction
-curl -X POST "$API_URL/predict" -H "Content-Type: application/json" -d '{\"age\": 63, \"sex\": 1, \"cp\": 3, \"trestbps\": 145, \"chol\": 233, \"fbs\": 1, \"restecg\": 0, \"thalach\": 150, \"exang\": 0, \"oldpeak\": 2.3, \"slope\": 0, \"ca\": 0, \"thal\": 1}'
+# Test prediction (upload local image)
+curl -X POST "$API_URL/predict" -F "file=@path/to/image.jpg"
 ```
 
 ## Screenshots to Take
